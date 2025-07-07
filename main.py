@@ -24,6 +24,9 @@ async def run():
 
         print("Saving rendered report HTML...")
         html = await page.content()
+        print("\n--- START PAGE HTML ---\n")
+        print(html)
+        print("\n--- END PAGE HTML ---\n")
         with open("call_log_page.html", "w", encoding="utf-8") as f:
             f.write(html)
 
