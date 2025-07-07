@@ -9,14 +9,11 @@ async def run():
     async with async_playwright() as p:
         print("Launching browser...")
         browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context()
+        context = await browser.new_context(storage_state=".auth/playwright_auth.json")
         page = await context.new_page()
 
         print("Navigating to ServiceTitan login...")
-        await page.goto("https://auth.servicetitan.com", timeout=60000)
-        await page.fill('input[name="username"]', ST_USERNAME)
-        await page.fill('input[name="password"]', ST_PASSWORD)
-        await page.click('button[type="submit"]')
+        await page.goto("https://go.servicetitan.com", timeout=60000)
 
         print("Waiting for dashboard to load...")
         await page.wait_for_timeout(8000)
