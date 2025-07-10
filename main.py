@@ -20,7 +20,25 @@ async def run():
 
         print("Navigating to your saved report...")
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
-        await page.wait_for_timeout(10000)
+
+        # Step 1: Wait for and open date selector
+        print("Waiting for date range input...")
+        await page.wait_for_selector('input[data-cy="qa-daterange-input"]')
+        await page.click('input[data-cy="qa-daterange-input"]')
+        await page.wait_for_timeout(1000)  # wait for menu to open
+        
+        # Step 2: Click "Last 7 Days"
+        print("Selecting 'Last 7 Days' range...")
+        await page.click('div[role="option"]:has-text("Last 7 Days")')
+        await page.wait_for_timeout(500)
+        
+        # Step 3: Click "Run Report"
+        print("Running the report...")
+        await page.click('button.qa-run-button')
+        
+        # Step 4: Wait for table to appear
+        print("Waiting for table to load...")
+        await page.wait_for_selector("table tbody tr", timeout=20000)
 
         print("Saving rendered report HTML...")
         html = await page.content()
