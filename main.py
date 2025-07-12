@@ -1,48 +1,41 @@
 import asyncio
+from flask import Flask
 from playwright.async_api import async_playwright
-from flask import Flask, send_file
 import os
 
-STORAGE_STATE = ".auth/playwright_auth.json"
-ST_USERNAME = os.getenv("ST_USERNAME")
-ST_PASSWORD = os.getenv("ST_PASSWORD")
-
 app = Flask(__name__)
-screenshot_path = "report_page.png"
 
-@app.route("/")
-def home():
-    return "<h1>Call Logger is running</h1><p><a href='/report_page.png'>View Screenshot</a></p>"
-
-@app.route("/report_page.png")
-def serve_screenshot():
-    return send_file(screenshot_path, mimetype="image/png")
-
-async def run_browser_task():
+async def run():
+    print("🚀 Starting Playwright automation...")
     async with async_playwright() as p:
-        print("Launching browser...")
         browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(storage_state=STORAGE_STATE)
+        context = await browser.new_context(storage_state=".auth/playwright_auth.json")
         page = await context.new_page()
 
-        print("Navigating to dashboard...")
+        print("🌐 Navigating to ServiceTitan dashboard...")
         await page.goto("https://go.servicetitan.com", timeout=60000)
-        await page.wait_for_timeout(8000)
+        await page.wait_for_timeout(6000)
 
-        print("Navigating to report...")
+        print("📊 Opening saved report...")
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
-        await page.wait_for_timeout(8000)
+        await page.wait_for_timeout(6000)
 
-        print("Taking screenshot...")
-        await page.screenshot(path=screenshot_path)
+        # ⚠️ Add interaction like clicking date range & "Run Report" if needed here
 
-        print("✅ Screenshot saved")
+        print("💾 Saving HTML content...")
+        html = await page.content()
+        with open("call_log_page.html", "w", encoding="utf-8") as f:
+            f.write(html)
+
         await browser.close()
+        print("✅ Done.")
 
-# Launch the browser task in background when Flask starts
-@app.before_first_request
-def start_browser_task():
-    asyncio.get_event_loop().create_task(run_browser_task())
+@app.route("/")
+def index():
+    return "📡 Call logger is running!"
 
+# 🔁 Trigger Playwright once on app startup
 if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.create_task(run())  # run() starts in background
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
