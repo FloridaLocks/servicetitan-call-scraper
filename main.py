@@ -57,6 +57,14 @@ async def run():
         # Step 5: Save screenshot to inspect visually
         await page.screenshot(path="report_after_run.png", full_page=True)
         print("🖼️ Screenshot saved: report_after_run.png")
+        import base64
+        # Read and encode the screenshot
+        with open("report_after_run.png", "rb") as image_file:
+            encoded = base64.b64encode(image_file.read()).decode("utf-8")
+            print("\n--- BEGIN BASE64 IMAGE ---\n")
+            print(encoded)
+            print("\n--- END BASE64 IMAGE ---\n")
+
 
         print("Saving rendered report HTML...")
         html = await page.content()
