@@ -21,42 +21,37 @@ async def run():
         print("Navigating to your saved report...")
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
 
-        # Step 1: Wait for and open date selector
+                # Step 1: Open date selector
         print("Waiting for date range input...")
-        await page.wait_for_selector('input[data-cy="qa-daterange-input"]')
+        await page.wait_for_selector('input[data-cy="qa-daterange-input"]', timeout=10000)
         await page.click('input[data-cy="qa-daterange-input"]')
-        await page.wait_for_timeout(1000)  # wait for menu to open
-        
-        # Step 2: Select "Last 7 Days" using keyboard navigation
-        print("Selecting 'Last 7 Days' range with keyboard...")
-        await page.keyboard.press("ArrowDown")  # Adjust number of presses if needed
-        await page.keyboard.press("ArrowDown")
-        await page.keyboard.press("ArrowDown")
-        await page.keyboard.press("ArrowDown")
-        await page.keyboard.press("Enter")
-        await page.wait_for_timeout(1000)  # Let it update
-        
-        # Optional: Log what range was selected
-        selected_range = await page.input_value('input[data-cy="qa-daterange-input"]')
-        print(f"✅ Date range selected: {selected_range}")
-        
-        # Step 3: Run the report
-        print("Running the report...")
-        run_button = await page.wait_for_selector('button.qa-run-button', timeout=10000)
-        await run_button.click()
-        await page.wait_for_timeout(2000)  # Let it start loading
-        
-        # Step 4: Wait longer and verify data table appears
-        print("Waiting for table rows to load (may take 10–20s)...")
-        try:
-            await page.wait_for_selector("table tbody tr", timeout=30000)
-            print("✅ Table loaded!")
-        except Exception:
-            print("⚠️ Timeout waiting for table rows — report may not have loaded.")
+        await page.wait_for_timeout(1000)  # give dropdown a moment to open
 
-        # Step 5: Save screenshot to inspect visually
-        await page.screenshot(path="report_after_run.png", full_page=True)
-        print("🖼️ Screenshot saved: report_after_run.png")
+        # Step 2: Click the "Last 7 Days" shortcut
+        print("Selecting 'Last 7 Days' shortcut...")
+        await page.locator("text=Last 7 Days").click(force=True)
+        await page.wait_for_timeout(500)
+
+        # Step 3: Click the "Run Report" button
+        print("Clicking 'Run Report'...")
+        await page.click('button.qa-run-button')
+        
+        # Step 4: Wait for the call table to load
+        print("Waiting for call table to load...")
+        await page.wait_for_selector("table tbody tr", timeout=20000)
+
+        # Step 5: Save page content for verification
+        print("Saving rendered report HTML...")
+        html = await page.content()
+        print("\n--- FRESH START PAGE HTML ---\n")
+        print(html[:3000])  # show first part for debug
+        print("\n--- END PAGE HTML ---\n")
+        with open("call_log_page.html", "w", encoding="utf-8") as f:
+            f.write(html)
+
+        await page.screenshot(path="report_page.png")
+        print("📸 Screenshot saved as report_page.png")
+        
         import base64
         # Read and encode the screenshot
         with open("report_after_run.png", "rb") as image_file:
