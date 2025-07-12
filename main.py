@@ -23,6 +23,11 @@ async def run():
 
         # Step 1: Wait for and open date selector
         print("Waiting for date range input...")
+        # Debug: Log dropdown contents
+        dropdown_html = await page.content()
+        print("\n--- DATE DROPDOWN DEBUG ---\n")
+        print(dropdown_html[:3000])
+        print("\n--- END DATE DROPDOWN ---\n")
         await page.wait_for_selector('input[data-cy="qa-daterange-input"]')
         await page.click('input[data-cy="qa-daterange-input"]')
         await page.wait_for_timeout(1000)  # wait for menu to open
