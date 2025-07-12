@@ -54,7 +54,7 @@ async def run():
         
         import base64
         # Read and encode the screenshot
-        with open("report_after_run.png", "rb") as image_file:
+        with open("report_page.png", "rb") as image_file:
             encoded = base64.b64encode(image_file.read()).decode("utf-8")
             print("\n--- BEGIN BASE64 IMAGE ---\n")
             print(encoded)
