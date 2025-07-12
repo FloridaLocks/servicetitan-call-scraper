@@ -40,13 +40,23 @@ async def run():
         selected_range = await page.input_value('input[data-cy="qa-daterange-input"]')
         print(f"✅ Date range selected: {selected_range}")
         
-        # Step 3: Click "Run Report"
+        # Step 3: Run the report
         print("Running the report...")
-        await page.click('button.qa-run-button')
+        run_button = await page.wait_for_selector('button.qa-run-button', timeout=10000)
+        await run_button.click()
+        await page.wait_for_timeout(2000)  # Let it start loading
         
-        # Step 4: Wait for table to appear
-        print("Waiting for table to load...")
-        await page.wait_for_selector("table tbody tr", timeout=20000)
+        # Step 4: Wait longer and verify data table appears
+        print("Waiting for table rows to load (may take 10–20s)...")
+        try:
+            await page.wait_for_selector("table tbody tr", timeout=30000)
+            print("✅ Table loaded!")
+        except Exception:
+            print("⚠️ Timeout waiting for table rows — report may not have loaded.")
+
+        # Step 5: Save screenshot to inspect visually
+        await page.screenshot(path="report_after_run.png", full_page=True)
+        print("🖼️ Screenshot saved: report_after_run.png")
 
         print("Saving rendered report HTML...")
         html = await page.content()
