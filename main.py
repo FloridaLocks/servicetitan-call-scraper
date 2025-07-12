@@ -23,19 +23,22 @@ async def run():
 
         # Step 1: Wait for and open date selector
         print("Waiting for date range input...")
-        # Debug: Log dropdown contents
-        dropdown_html = await page.content()
-        print("\n--- DATE DROPDOWN DEBUG ---\n")
-        print(dropdown_html[:3000])
-        print("\n--- END DATE DROPDOWN ---\n")
         await page.wait_for_selector('input[data-cy="qa-daterange-input"]')
         await page.click('input[data-cy="qa-daterange-input"]')
         await page.wait_for_timeout(1000)  # wait for menu to open
         
-        # Step 2: Click "Last 7 Days"
-        print("Selecting 'Last 7 Days' range...")
-        await page.click('div[role="option"]:has-text("Last 7 Days")')
-        await page.wait_for_timeout(500)
+        # Step 2: Select "Last 7 Days" using keyboard navigation
+        print("Selecting 'Last 7 Days' range with keyboard...")
+        await page.keyboard.press("ArrowDown")  # Adjust number of presses if needed
+        await page.keyboard.press("ArrowDown")
+        await page.keyboard.press("ArrowDown")
+        await page.keyboard.press("ArrowDown")
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(1000)  # Let it update
+        
+        # Optional: Log what range was selected
+        selected_range = await page.input_value('input[data-cy="qa-daterange-input"]')
+        print(f"✅ Date range selected: {selected_range}")
         
         # Step 3: Click "Run Report"
         print("Running the report...")
