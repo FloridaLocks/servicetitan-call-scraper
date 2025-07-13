@@ -15,6 +15,9 @@ def write_auth_file():
         print("⚠️  No PLAYWRIGHT_AUTH_B64 found in environment")
 
 async def run_scraper():
+    # Debug check for environment variable
+    value = os.getenv("PLAYWRIGHT_AUTH_B64")
+    print("ENV VAR TEST:", value[:50] if value else "❌ MISSING")
     print("🚀 Starting scraper...")
     write_auth_file()
 
