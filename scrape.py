@@ -3,6 +3,8 @@ from playwright.async_api import async_playwright
 import base64
 import os
 
+print("ENV VAR TEST:", os.getenv("PLAYWRIGHT_AUTH_B64")[:50])
+
 # Used to write session auth file from Railway ENV
 def write_auth_file():
     b64_data = os.getenv("PLAYWRIGHT_AUTH_B64")
