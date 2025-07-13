@@ -18,7 +18,7 @@ async def run_scraper():
     value = os.getenv("PLAYWRIGHT_AUTH_B64")
     print("ENV VAR TEST:", value[:50] if value else "❌ MISSING")
     print("🚀 Starting scraper...")
-    write_auth_file()
+    ensure_auth_file()
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
