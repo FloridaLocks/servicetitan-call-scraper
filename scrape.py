@@ -5,17 +5,15 @@ import os
 print("DEBUG: ENV VAR FOUND?" , os.getenv("PLAYWRIGHT_AUTH_B64") is not None)
 
 # Used to write session auth file from Railway ENV
-def write_auth_file():
-    b64_data = os.getenv("PLAYWRIGHT_AUTH_B64")
-    if b64_data:
-        os.makedirs(".auth", exist_ok=True)
-        with open(".auth/playwright_auth.json", "wb") as f:
-            f.write(base64.b64decode(b64_data))
-        print("✅ playwright_auth.json restored from env")
-    else:
-        print("⚠️  No PLAYWRIGHT_AUTH_B64 found in environment")
+import os
+
+def ensure_auth_file():
+    if not os.path.exists(".auth/playwright_auth.json"):
+        raise FileNotFoundError("❌ Auth file missing at .auth/playwright_auth.json")
+    print("✅ playwright_auth.json found — ready to launch browser")
 
 async def run_scraper():
+    ensure_auth_file()
     # Debug check for environment variable
     value = os.getenv("PLAYWRIGHT_AUTH_B64")
     print("ENV VAR TEST:", value[:50] if value else "❌ MISSING")
