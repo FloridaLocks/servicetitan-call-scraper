@@ -2,6 +2,7 @@ import asyncio
 from playwright.async_api import async_playwright
 import base64
 import os
+print("DEBUG: ENV VAR FOUND?" , os.getenv("PLAYWRIGHT_AUTH_B64") is not None)
 
 # Used to write session auth file from Railway ENV
 def write_auth_file():
