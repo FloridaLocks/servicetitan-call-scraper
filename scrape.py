@@ -57,20 +57,25 @@ async def run_scraper():
 
         print("⌛ Trying multiple selectors for calendar popup...")
 
-        calendar_found = False
-        for selector in [
-            'div[data-cy="qa-daterange-calendar"]',
-            'div.react-datepicker__calendar',
-            'div.react-datepicker',
-            'div.MuiPopover-root',  # possible Material UI popup
-        ]:
+                print("⌛ Waiting for calendar panel using alternative methods...")
+
+        try:
+            # Try basic ARIA role first
+            await page.wait_for_selector('div[role="dialog"]', timeout=5000)
+            print("✅ Found calendar using role=dialog")
+        except:
             try:
-                await page.wait_for_selector(selector, timeout=5000)
-                print(f"✅ Found calendar using selector: {selector}")
-                calendar_found = True
-                break
-            except:
-                print(f"❌ Selector not found: {selector}")
+                # Try visible text inside common calendar containers
+                await page.get_by_text("Start date").wait_for(timeout=5000)
+                print("✅ Found calendar using visible text 'Start date'")
+            except Exception as e:
+                # If still not found, dump content
+                print("❌ Calendar popup not detected using ARIA or visible text")
+                html_debug = await page.content()
+                print("\n--- HTML DEBUG ---\n")
+                print(html_debug[:3000])
+                print("\n--- END HTML DEBUG ---\n")
+                raise Exception("Calendar popup still not detected using backup methods")
 
         if not calendar_found:
             print("❌ Could not detect calendar popup. Dumping calendar area HTML for debugging...")
