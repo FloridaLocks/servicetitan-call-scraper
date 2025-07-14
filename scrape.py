@@ -2,12 +2,12 @@ import asyncio
 from playwright.async_api import async_playwright
 import base64
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
-# DEBUG: Show if ENV VAR is set
+# ✅ Log whether environment variable is present
 print("DEBUG: ENV VAR FOUND?", os.getenv("PLAYWRIGHT_AUTH_B64") is not None)
 
-# ✅ Write the playwright session file if env var is present
+# ✅ Write auth file from base64 env var if present
 def write_auth_file():
     b64_data = os.getenv("PLAYWRIGHT_AUTH_B64")
     if b64_data:
@@ -18,13 +18,13 @@ def write_auth_file():
     else:
         print("⚠️  PLAYWRIGHT_AUTH_B64 not set — skipping session file write")
 
-# 🔐 Make sure the session file exists before launching
+# ✅ Ensure the .auth file exists before browser launch
 def ensure_auth_file():
     if not os.path.exists(".auth/playwright_auth.json"):
         raise FileNotFoundError("❌ Auth file missing at .auth/playwright_auth.json")
     print("✅ playwright_auth.json found — ready to launch browser")
 
-# 🧠 Main scraping logic
+# 🚀 MAIN SCRAPER LOGIC
 async def run_scraper():
     ensure_auth_file()
     print("🚀 Starting scraper...")
@@ -42,90 +42,58 @@ async def run_scraper():
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
         await page.wait_for_timeout(6000)
 
-        from datetime import datetime
-
-        # Step 1: Click the visible date input to open the calendar panel
+        # STEP 1: Open calendar by clicking main date input
         print("📅 Clicking main date input to open calendar...")
         await page.click('input[data-cy="qa-daterange-input"]')
-        await page.wait_for_selector('div[data-cy="qa-daterange-calendar"]', timeout=10000)
-        print("📅 Calendar panel detected")
-        
-        # 📸 Debug: Take screenshot of open calendar popup
-        calendar_screenshot = await page.screenshot()
-        calendar_b64 = base64.b64encode(calendar_screenshot).decode()
-        print("\n--- CALENDAR POPUP DEBUG SCREENSHOT ---\n")
-        print(calendar_b64)
-        print("\n--- END SCREENSHOT ---\n")
-        
-        # 📝 Save current HTML for inspection
+        print("⌛ Waiting for calendar container to appear...")
+        await page.wait_for_selector('div[data-cy="qa-daterange-calendar"]', timeout=20000)
+        print("✅ Calendar panel loaded")
+
+        # DEBUG: Screenshot of the calendar
+        calendar_debug = await page.screenshot()
+        print("\n--- CALENDAR POPUP DEBUG ---\n")
+        print(base64.b64encode(calendar_debug).decode())
+        print("\n--- END ---\n")
+
+        # DEBUG: HTML of the calendar
         html_debug = await page.content()
         with open("calendar_popup_debug.html", "w", encoding="utf-8") as f:
             f.write(html_debug)
-        print("✅ HTML snapshot of calendar popup saved.")
+        print("✅ Saved calendar popup HTML for inspection")
 
-        # Step 2: Wait for the calendar panel to appear
-        print("⌛ Waiting for calendar popup to become visible...")
-        # Wait for calendar panel to become stable
-        print("⌛ Waiting up to 15s for calendar container to appear...")
-        
-        # Use broader selector in case Playwright sees visibility differently
-        try:
-            await page.wait_for_selector('div.react-datepicker__calendar', timeout=15000)
-            print("✅ Calendar popup detected.")
-        except Exception as e:
-            print(f"❌ Calendar popup not detected within timeout: {e}")
-        
-        # Screenshot for troubleshooting
-        calendar_check = await page.screenshot()
-        calendar_check_b64 = base64.b64encode(calendar_check).decode()
-        print("\n--- CALENDAR POPUP STATE ---\n")
-        print(calendar_check_b64)
-        print("\n--- END SCREENSHOT ---\n")
+        # STEP 2: Type today's date into both fields
+        today = datetime.today().strftime("%m/%d/%Y")
+        print(f"⌨️ Typing today's date: {today} into calendar fields...")
 
-        # Step 3: Enter today’s date in both start and end
-        today_str = datetime.today().strftime("%m/%d/%Y")
-        # Type directly into the open calendar inputs
-        print("⌨️ Typing dates into calendar fields...")
-        
-        # Type into the first input found inside the calendar popup
         inputs = await page.query_selector_all('div.react-datepicker__tab-loop input')
-        
         if len(inputs) >= 2:
-            await inputs[0].fill(today_str)  # Start Date
+            await inputs[0].fill(today)  # Start Date
             await page.keyboard.press("Tab")
-            await inputs[1].fill(today_str)  # End Date
+            await inputs[1].fill(today)  # End Date
             await page.keyboard.press("Enter")
-            print("✅ Dates typed successfully")
+            print("✅ Dates entered")
         else:
             raise Exception("❌ Could not find both Start and End date inputs")
 
-        # Step 4: Click Run Report
+        # STEP 3: Click Run Report
         print("▶️ Clicking Run Report...")
         await page.click("button.qa-run-button")
-        
-        # Step 5: Wait 15 seconds for report to process
-        print("⏳ Waiting 15 seconds for report to process...")
+
+        # STEP 4: Wait for report to process
+        print("⏳ Waiting 15 seconds for report to load...")
         await page.wait_for_timeout(15000)
-        
-        # Step 6: Capture screenshot and HTML
+
+        # STEP 5: Save full-page screenshot and HTML
         print("📸 Capturing screenshot and HTML...")
         await page.screenshot(path="screenshot.png", full_page=True)
         html = await page.content()
         with open("call_log_page.html", "w", encoding="utf-8") as f:
             f.write(html)
-
-        
-        html = await page.content()
-        with open("call_log_page.html", "w", encoding="utf-8") as f:
-            f.write(html)
-
         print("✅ Report HTML saved")
 
-        # 📸 Capture a screenshot and base64 encode it
+        # STEP 6: Print screenshot base64 for deploy log
         screenshot_bytes = await page.screenshot()
         screenshot_b64 = base64.b64encode(screenshot_bytes).decode()
-        
-        # 🧾 Print screenshot directly in log
         print("\n--- BEGIN BASE64 SCREENSHOT ---\n")
         print(screenshot_b64)
         print("\n--- END BASE64 SCREENSHOT ---\n")
