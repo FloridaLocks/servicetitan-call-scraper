@@ -42,11 +42,22 @@ async def run_scraper():
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
         await page.wait_for_timeout(6000)
 
-        # STEP 1: Open calendar by clicking main date input
+        # Step 1: Click the visible date input to open the calendar panel
         print("📅 Clicking main date input to open calendar...")
+        await page.locator('input[data-cy="qa-daterange-input"]').scroll_into_view_if_needed()
         await page.click('input[data-cy="qa-daterange-input"]')
+        
+        # Screenshot right after click to verify state
+        print("📸 Taking screenshot right after clicking date input...")
+        calendar_try = await page.screenshot()
+        calendar_try_b64 = base64.b64encode(calendar_try).decode()
+        print("\n--- AFTER CLICK SCREENSHOT ---\n")
+        print(calendar_try_b64)
+        print("\n--- END ---\n")
+        
+        # Wait for a broader selector in case the data-cy is flaky
         print("⌛ Waiting for calendar container to appear...")
-        await page.wait_for_selector('div[data-cy="qa-daterange-calendar"]', timeout=20000)
+        await page.wait_for_selector('div.react-datepicker', timeout=20000)
         print("✅ Calendar panel loaded")
 
         # DEBUG: Screenshot of the calendar
