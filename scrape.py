@@ -42,41 +42,43 @@ async def run_scraper():
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
         await page.wait_for_timeout(6000)
 
-        # 🗓️ Step 1: Click the date range input
-        print("📅 Clicking date input...")
+        from datetime import datetime
+
+        # Step 1: Open the date range selector
+        print("📅 Opening date input...")
         await page.click('input[data-cy="qa-daterange-input"]')
         await page.wait_for_timeout(1000)
-
-        # Calculate dates
-        today = datetime.now()
-        seven_days_ago = today - timedelta(days=6)
-        start_date = seven_days_ago.strftime("%m/%d/%Y")
-        end_date = today.strftime("%m/%d/%Y")
-        print(f"🧮 Setting date range: {start_date} – {end_date}")
-
-        # ⌨️ Step 2: Type in the start and end dates manually
-        await page.keyboard.type(start_date)
+        
+        # Step 2: Get today's date in MM/DD/YYYY format
+        today_str = datetime.today().strftime("%m/%d/%Y")
+        print(f"🗓 Entering start and end date: {today_str}")
+        
+        # Step 3: Manually type today's date into Start and End fields
+        start_input = '(//input[@placeholder="Start date"])[1]'
+        end_input = '(//input[@placeholder="End date"])[1]'
+        
+        await page.fill(start_input, today_str)
         await page.keyboard.press("Tab")
-        await page.keyboard.type(end_date)
+        await page.fill(end_input, today_str)
         await page.keyboard.press("Enter")
-        await page.wait_for_timeout(500)
-
-        # ▶️ Step 3: Click "Run Report"
+        await page.wait_for_timeout(1000)
+        
+        # Step 4: Click Run Report
         print("▶️ Clicking Run Report...")
         await page.click("button.qa-run-button")
-
-        # Step 4: Wait for table rows to appear
-        print("⏳ Waiting up to 60s for table rows...")
-        try:
-            await page.wait_for_selector("table tbody tr", timeout=60000)
-            print("✅ Table loaded")
-        except Exception as e:
-            print("❌ Table did not load within 60s:", e)
-
-        # 💾 Save the report HTML for inspection
+        
+        # Step 5: Wait 15 seconds for table to load
+        print("⏳ Waiting 15 seconds for report to process...")
+        await page.wait_for_timeout(15000)
+        
+        # Step 6: Screenshot and HTML export
+        print("📸 Capturing screenshot and HTML...")
+        await page.screenshot(path="screenshot.png", full_page=True)
+        
         html = await page.content()
         with open("call_log_page.html", "w", encoding="utf-8") as f:
             f.write(html)
+
         print("✅ Report HTML saved")
 
         # 📸 Capture a screenshot and base64 encode it
