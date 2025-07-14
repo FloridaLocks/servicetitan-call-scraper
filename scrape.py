@@ -43,62 +43,48 @@ async def run_scraper():
         await page.wait_for_timeout(6000)
 
         # Step 1: Click the visible date input to open the calendar panel
-        print("📅 Clicking main date input to open calendar...")
+        print("📅 Clicking main date input to open calendar (1st try)...")
         await page.locator('input[data-cy="qa-daterange-input"]').scroll_into_view_if_needed()
-        await page.click('input[data-cy="qa-daterange-input"]', force=True)
+        await page.click('input[data-cy="qa-daterange-input"]')
+        await page.wait_for_timeout(2000)
 
-        # Screenshot right after click to verify state
-        print("📸 Taking screenshot right after clicking date input...")
+        print("🌀 Clicking date input again to ensure popup opens (2nd try)...")
+        await page.click('input[data-cy="qa-daterange-input"]')
+        await page.wait_for_timeout(3000)
+
+        # Screenshot right after click
         calendar_try = await page.screenshot()
         calendar_try_b64 = base64.b64encode(calendar_try).decode()
-        print("\n--- AFTER CLICK SCREENSHOT ---\n")
+        print("\n--- AFTER DOUBLE-CLICK SCREENSHOT ---\n")
         print(calendar_try_b64)
         print("\n--- END ---\n")
-        
-        # Print trimmed HTML for inspection
-        print("📝 Dumping full HTML after calendar click (trimmed)...")
-        html_debug = await page.content()
-        print("\n--- BEGIN CALENDAR HTML (trimmed to 5000 chars) ---\n")
-        print(html_debug[:5000])  # only first 5000 characters to avoid flooding logs
-        print("\n--- END CALENDAR HTML ---\n")
 
-        # Try to detect calendar container with flexible selectors
-        print("⌛ Waiting for calendar panel using alternative methods...")
-
+        print("⌛ Checking for calendar popup...")
         calendar_found = False
         for selector in [
             'div[data-cy="qa-daterange-calendar"]',
             'div.react-datepicker__calendar',
             'div.react-datepicker',
             'div.MuiPopover-root',
-            'div[role="dialog"]'
+            'div[role="dialog"]',  # common popup role
+            'input[placeholder="Start date"]',
         ]:
             try:
                 await page.wait_for_selector(selector, timeout=5000)
-                print(f"✅ Found calendar using selector: {selector}")
+                print(f"✅ Found calendar or input using: {selector}")
                 calendar_found = True
                 break
             except:
                 print(f"❌ Selector not found: {selector}")
 
         if not calendar_found:
-            try:
-                await page.get_by_text("Start date").wait_for(timeout=5000)
-                print("✅ Found calendar using visible text 'Start date'")
-                calendar_found = True
-            except Exception as e:
-                print("❌ Calendar popup not detected using ARIA or visible text")
-                html_debug = await page.content()
-                print("\n--- HTML DEBUG ---\n")
-                print(html_debug[:3000])
-                print("\n--- END HTML DEBUG ---\n")
-                raise Exception("Calendar popup still not detected after all selector attempts.")
+            print("❌ Still no calendar found. Dumping visible HTML...")
+            html_debug = await page.content()
+            print("\n--- CALENDAR HTML DEBUG (trimmed) ---\n")
+            print(html_debug[:4000])
+            print("\n--- END HTML ---\n")
+            raise Exception("❌ Calendar popup still not detected after retries.")
 
-        # Save HTML for debugging
-        html_debug = await page.content()
-        with open("calendar_popup_debug.html", "w", encoding="utf-8") as f:
-            f.write(html_debug)
-        print("✅ Saved calendar popup HTML for inspection")
 
         # STEP 2: Type today's date into both fields
         today = datetime.today().strftime("%m/%d/%Y")
