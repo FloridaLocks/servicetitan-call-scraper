@@ -45,7 +45,7 @@ async def run_scraper():
         # Step 1: Click the visible date input to open the calendar panel
         print("📅 Clicking main date input to open calendar...")
         await page.locator('input[data-cy="qa-daterange-input"]').scroll_into_view_if_needed()
-        await page.click('input[data-cy="qa-daterange-input"]')
+        await page.click('input[data-cy="qa-daterange-input"]', force=True)
 
         # Screenshot right after click to verify state
         print("📸 Taking screenshot right after clicking date input...")
@@ -55,37 +55,39 @@ async def run_scraper():
         print(calendar_try_b64)
         print("\n--- END ---\n")
 
-        print("⌛ Trying multiple selectors for calendar popup...")
+        # Try to detect calendar container with flexible selectors
+        print("⌛ Waiting for calendar panel using alternative methods...")
 
-                print("⌛ Waiting for calendar panel using alternative methods...")
-
-        try:
-            # Try basic ARIA role first
-            await page.wait_for_selector('div[role="dialog"]', timeout=5000)
-            print("✅ Found calendar using role=dialog")
-        except:
+        calendar_found = False
+        for selector in [
+            'div[data-cy="qa-daterange-calendar"]',
+            'div.react-datepicker__calendar',
+            'div.react-datepicker',
+            'div.MuiPopover-root',
+            'div[role="dialog"]'
+        ]:
             try:
-                # Try visible text inside common calendar containers
+                await page.wait_for_selector(selector, timeout=5000)
+                print(f"✅ Found calendar using selector: {selector}")
+                calendar_found = True
+                break
+            except:
+                print(f"❌ Selector not found: {selector}")
+
+        if not calendar_found:
+            try:
                 await page.get_by_text("Start date").wait_for(timeout=5000)
                 print("✅ Found calendar using visible text 'Start date'")
+                calendar_found = True
             except Exception as e:
-                # If still not found, dump content
                 print("❌ Calendar popup not detected using ARIA or visible text")
                 html_debug = await page.content()
                 print("\n--- HTML DEBUG ---\n")
                 print(html_debug[:3000])
                 print("\n--- END HTML DEBUG ---\n")
-                raise Exception("Calendar popup still not detected using backup methods")
+                raise Exception("Calendar popup still not detected after all selector attempts.")
 
-        if not calendar_found:
-            print("❌ Could not detect calendar popup. Dumping calendar area HTML for debugging...")
-            calendar_html = await page.content()
-            print("\n--- BEGIN CALENDAR HTML DUMP ---\n")
-            print(calendar_html[:3000])  # Trim to avoid log overload
-            print("\n--- END HTML DUMP ---\n")
-            raise Exception("Calendar popup still not detected after all selector attempts.")
-
-        # DEBUG: HTML of the calendar
+        # Save HTML for debugging
         html_debug = await page.content()
         with open("calendar_popup_debug.html", "w", encoding="utf-8") as f:
             f.write(html_debug)
@@ -96,6 +98,7 @@ async def run_scraper():
         print(f"⌨️ Typing today's date: {today} into calendar fields...")
 
         inputs = await page.query_selector_all('div.react-datepicker__tab-loop input')
+        print(f"🔍 Found {len(inputs)} input fields")
         if len(inputs) >= 2:
             await inputs[0].fill(today)  # Start Date
             await page.keyboard.press("Tab")
@@ -118,14 +121,14 @@ async def run_scraper():
         await page.screenshot(path="screenshot.png", full_page=True)
         html = await page.content()
         print("\n--- BEGIN HTML PAGE ---\n")
-        print(html[:5000])  # print only first 5000 characters to avoid flooding logs
+        print(html[:5000])
         print("\n--- END HTML PAGE ---\n")
 
         with open("call_log_page.html", "w", encoding="utf-8") as f:
             f.write(html)
         print("✅ Report HTML saved")
 
-        # STEP 6: Print screenshot base64 for deploy log
+        # STEP 6: Print screenshot base64
         screenshot_bytes = await page.screenshot()
         screenshot_b64 = base64.b64encode(screenshot_bytes).decode()
         print("\n--- BEGIN BASE64 SCREENSHOT ---\n")
