@@ -55,16 +55,10 @@ async def run_scraper():
         print(calendar_try_b64)
         print("\n--- END ---\n")
         
-        # Wait for a broader selector in case the data-cy is flaky
-        print("⌛ Waiting for calendar container to appear...")
+        # Wait for calendar to become visible
+        print("⌛ Waiting for visible calendar container...")
         await page.wait_for_selector('div.react-datepicker', timeout=20000)
         print("✅ Calendar panel loaded")
-
-        # DEBUG: Screenshot of the calendar
-        calendar_debug = await page.screenshot()
-        print("\n--- CALENDAR POPUP DEBUG ---\n")
-        print(base64.b64encode(calendar_debug).decode())
-        print("\n--- END ---\n")
 
         # DEBUG: HTML of the calendar
         html_debug = await page.content()
