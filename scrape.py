@@ -65,9 +65,13 @@ async def run_scraper():
         print("▶️ Clicking Run Report...")
         await page.click("button.qa-run-button")
 
-        # ⏳ Step 4: Wait for report to load
-        print("⏳ Waiting for table rows...")
-        await page.wait_for_selector("table tbody tr", timeout=20000)
+        # Step 4: Wait for table rows to appear
+        print("⏳ Waiting up to 60s for table rows...")
+        try:
+            await page.wait_for_selector("table tbody tr", timeout=60000)
+            print("✅ Table loaded")
+        except Exception as e:
+            print("❌ Table did not load within 60s:", e)
 
         # 💾 Save the report HTML for inspection
         html = await page.content()
