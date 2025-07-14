@@ -59,7 +59,22 @@ async def run_scraper():
 
         # Step 2: Wait for the calendar panel to appear
         print("⌛ Waiting for calendar popup to become visible...")
-        await page.wait_for_selector('div[data-cy="qa-daterange-calendar"]', timeout=10000)
+        # Wait for calendar panel to become stable
+        print("⌛ Waiting up to 15s for calendar container to appear...")
+        
+        # Use broader selector in case Playwright sees visibility differently
+        try:
+            await page.wait_for_selector('div.react-datepicker__calendar', timeout=15000)
+            print("✅ Calendar popup detected.")
+        except Exception as e:
+            print(f"❌ Calendar popup not detected within timeout: {e}")
+        
+        # Screenshot for troubleshooting
+        calendar_check = await page.screenshot()
+        calendar_check_b64 = base64.b64encode(calendar_check).decode()
+        print("\n--- CALENDAR POPUP STATE ---\n")
+        print(calendar_check_b64)
+        print("\n--- END SCREENSHOT ---\n")
 
         # Step 3: Enter today’s date in both start and end
         today_str = datetime.today().strftime("%m/%d/%Y")
