@@ -78,8 +78,8 @@ async def run_scraper():
         # 📸 Capture a screenshot and base64 encode it
         screenshot_bytes = await page.screenshot()
         screenshot_b64 = base64.b64encode(screenshot_bytes).decode()
-        with open("screenshot.b64.txt", "w") as f:
-            f.write(screenshot_b64)
-        print("🖼️ Screenshot saved to screenshot.b64.txt")
-
-        await browser.close()
+        
+        # 🧾 Print screenshot directly in log
+        print("\n--- BEGIN BASE64 SCREENSHOT ---\n")
+        print(screenshot_b64)
+        print("\n--- END BASE64 SCREENSHOT ---\n")
