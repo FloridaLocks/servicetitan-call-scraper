@@ -54,6 +54,13 @@ async def run_scraper():
         print("\n--- AFTER CLICK SCREENSHOT ---\n")
         print(calendar_try_b64)
         print("\n--- END ---\n")
+        
+        # Print trimmed HTML for inspection
+        print("📝 Dumping full HTML after calendar click (trimmed)...")
+        html_debug = await page.content()
+        print("\n--- BEGIN CALENDAR HTML (trimmed to 5000 chars) ---\n")
+        print(html_debug[:5000])  # only first 5000 characters to avoid flooding logs
+        print("\n--- END CALENDAR HTML ---\n")
 
         # Try to detect calendar container with flexible selectors
         print("⌛ Waiting for calendar panel using alternative methods...")
