@@ -42,27 +42,25 @@ async def run_scraper():
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
         await page.wait_for_timeout(6000)
 
-        from datetime import datetime
-
-        from datetime import datetime
-
-        # Step 1: Click the visible date input to open the calendar panel
-        print("📅 Clicking main date input...")
-        await page.click('input[data-cy="qa-daterange-input"]')
-        await page.wait_for_selector('div[data-cy="qa-daterange-calendar"]', timeout=5000)
-        await page.wait_for_timeout(1000)
+        # Step 1: Click the "Start Date" field to open the manual entry fields
+        print("📅 Clicking Start Date field...")
+        await page.click('xpath=(//input[@placeholder="Start date"])[1]')
+        await page.wait_for_timeout(3000)  # Let the UI respond
         
-        # Step 2: Get today's date in MM/DD/YYYY format
-        today_str = datetime.today().strftime("%m/%d/%Y")
-        print(f"🗓 Typing {today_str} into start and end date fields...")
+        # Step 2: Compute date range (last 1 day)
+        today = datetime.now()
+        start_str = today.strftime("%m/%d/%Y")
+        end_str = today.strftime("%m/%d/%Y")
         
-        # Step 3: Fill the start and end date fields
-        await page.fill('input[placeholder="Start date"]', today_str)
+        print(f"🗓️ Setting start and end date to {start_str}")
+        
+        # Step 3: Type in the date range
+        await page.fill('xpath=(//input[@placeholder="Start date"])[1]', start_str)
         await page.keyboard.press("Tab")
-        await page.fill('input[placeholder="End date"]', today_str)
+        await page.fill('xpath=(//input[@placeholder="End date"])[1]', end_str)
         await page.keyboard.press("Enter")
         await page.wait_for_timeout(1000)
-        
+  
         # Step 4: Click Run Report
         print("▶️ Clicking Run Report...")
         await page.click("button.qa-run-button")
