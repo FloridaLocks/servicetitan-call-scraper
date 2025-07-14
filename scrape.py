@@ -78,13 +78,20 @@ async def run_scraper():
 
         # Step 3: Enter today’s date in both start and end
         today_str = datetime.today().strftime("%m/%d/%Y")
-        print(f"🗓 Typing today ({today_str}) into Start & End date fields...")
-
-        await page.fill('input[placeholder="Start date"]', today_str)
-        await page.keyboard.press("Tab")
-        await page.fill('input[placeholder="End date"]', today_str)
-        await page.keyboard.press("Enter")
-        await page.wait_for_timeout(1000)
+        # Type directly into the open calendar inputs
+        print("⌨️ Typing dates into calendar fields...")
+        
+        # Type into the first input found inside the calendar popup
+        inputs = await page.query_selector_all('div.react-datepicker__tab-loop input')
+        
+        if len(inputs) >= 2:
+            await inputs[0].fill(today_str)  # Start Date
+            await page.keyboard.press("Tab")
+            await inputs[1].fill(today_str)  # End Date
+            await page.keyboard.press("Enter")
+            print("✅ Dates typed successfully")
+        else:
+            raise Exception("❌ Could not find both Start and End date inputs")
 
         # Step 4: Click Run Report
         print("▶️ Clicking Run Report...")
