@@ -42,26 +42,35 @@ async def run_scraper():
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
         await page.wait_for_timeout(6000)
 
-       # Step 1: Click the main date range input to open the calendar
-        print("📅 Clicking date range input to open calendar...")
+     from datetime import datetime
+
+        # Step 1: Click the visible date input to open the calendar panel
+        print("📅 Clicking main date input to open calendar...")
         await page.click('input[data-cy="qa-daterange-input"]')
-        await page.wait_for_selector('div[data-cy="qa-daterange-calendar"]', timeout=10000)
         await page.wait_for_timeout(1500)
         
-        # Step 2: Compute today’s date
-        today = datetime.now()
-        start_str = today.strftime("%m/%d/%Y")
-        end_str = today.strftime("%m/%d/%Y")
-        print(f"🗓️ Typing date range: {start_str} - {end_str}")
+        # Debug: Screenshot before trying to locate calendar
+        print("📸 Taking screenshot before checking for calendar...")
+        before_calendar = await page.screenshot()
+        before_calendar_b64 = base64.b64encode(before_calendar).decode()
+        print("\n--- BEGIN CALENDAR DEBUG SCREENSHOT ---\n")
+        print(before_calendar_b64)
+        print("\n--- END CALENDAR DEBUG SCREENSHOT ---\n")
         
-        # Step 3: Fill in the start and end dates using placeholder-based selectors
-        await page.fill('input[placeholder="Start date"]', start_str)
+        # Step 2: Wait for the calendar panel to appear
+        print("⌛ Waiting for calendar popup to become visible...")
+        await page.wait_for_selector('div[data-cy="qa-daterange-calendar"]', timeout=10000)
+        
+        # Step 3: Enter today’s date in both start and end
+        today_str = datetime.today().strftime("%m/%d/%Y")
+        print(f"🗓 Typing today ({today_str}) into Start & End date fields...")
+        
+        await page.fill('input[placeholder="Start date"]', today_str)
         await page.keyboard.press("Tab")
-        await page.fill('input[placeholder="End date"]', end_str)
+        await page.fill('input[placeholder="End date"]', today_str)
         await page.keyboard.press("Enter")
         await page.wait_for_timeout(1000)
 
-  
         # Step 4: Click Run Report
         print("▶️ Clicking Run Report...")
         await page.click("button.qa-run-button")
