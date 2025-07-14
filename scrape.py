@@ -47,15 +47,21 @@ async def run_scraper():
         # Step 1: Click the visible date input to open the calendar panel
         print("📅 Clicking main date input to open calendar...")
         await page.click('input[data-cy="qa-daterange-input"]')
-        await page.wait_for_timeout(1500)
-
-        # Debug: Screenshot before trying to locate calendar
-        print("📸 Taking screenshot before checking for calendar...")
-        before_calendar = await page.screenshot()
-        before_calendar_b64 = base64.b64encode(before_calendar).decode()
-        print("\n--- BEGIN CALENDAR DEBUG SCREENSHOT ---\n")
-        print(before_calendar_b64)
-        print("\n--- END CALENDAR DEBUG SCREENSHOT ---\n")
+        await page.wait_for_selector('div[data-cy="qa-daterange-calendar"]', timeout=10000)
+        print("📅 Calendar panel detected")
+        
+        # 📸 Debug: Take screenshot of open calendar popup
+        calendar_screenshot = await page.screenshot()
+        calendar_b64 = base64.b64encode(calendar_screenshot).decode()
+        print("\n--- CALENDAR POPUP DEBUG SCREENSHOT ---\n")
+        print(calendar_b64)
+        print("\n--- END SCREENSHOT ---\n")
+        
+        # 📝 Save current HTML for inspection
+        html_debug = await page.content()
+        with open("calendar_popup_debug.html", "w", encoding="utf-8") as f:
+            f.write(html_debug)
+        print("✅ HTML snapshot of calendar popup saved.")
 
         # Step 2: Wait for the calendar panel to appear
         print("⌛ Waiting for calendar popup to become visible...")
