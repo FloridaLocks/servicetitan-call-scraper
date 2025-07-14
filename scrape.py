@@ -92,6 +92,10 @@ async def run_scraper():
         print("📸 Capturing screenshot and HTML...")
         await page.screenshot(path="screenshot.png", full_page=True)
         html = await page.content()
+        print("\n--- BEGIN HTML PAGE ---\n")
+        print(html[:5000])  # print only first 5000 characters to avoid flooding logs
+        print("\n--- END HTML PAGE ---\n")
+        
         with open("call_log_page.html", "w", encoding="utf-8") as f:
             f.write(html)
         print("✅ Report HTML saved")
