@@ -44,22 +44,22 @@ async def run_scraper():
 
         from datetime import datetime
 
-        # Step 1: Open the date range selector
-        print("📅 Opening date input...")
+        from datetime import datetime
+
+        # Step 1: Click the visible date input to open the calendar panel
+        print("📅 Clicking main date input...")
         await page.click('input[data-cy="qa-daterange-input"]')
+        await page.wait_for_selector('div[data-cy="qa-daterange-calendar"]', timeout=5000)
         await page.wait_for_timeout(1000)
         
         # Step 2: Get today's date in MM/DD/YYYY format
         today_str = datetime.today().strftime("%m/%d/%Y")
-        print(f"🗓 Entering start and end date: {today_str}")
+        print(f"🗓 Typing {today_str} into start and end date fields...")
         
-        # Step 3: Manually type today's date into Start and End fields
-        start_input = '(//input[@placeholder="Start date"])[1]'
-        end_input = '(//input[@placeholder="End date"])[1]'
-        
-        await page.fill(start_input, today_str)
+        # Step 3: Fill the start and end date fields
+        await page.fill('input[placeholder="Start date"]', today_str)
         await page.keyboard.press("Tab")
-        await page.fill(end_input, today_str)
+        await page.fill('input[placeholder="End date"]', today_str)
         await page.keyboard.press("Enter")
         await page.wait_for_timeout(1000)
         
@@ -67,13 +67,17 @@ async def run_scraper():
         print("▶️ Clicking Run Report...")
         await page.click("button.qa-run-button")
         
-        # Step 5: Wait 15 seconds for table to load
+        # Step 5: Wait 15 seconds for report to process
         print("⏳ Waiting 15 seconds for report to process...")
         await page.wait_for_timeout(15000)
         
-        # Step 6: Screenshot and HTML export
+        # Step 6: Capture screenshot and HTML
         print("📸 Capturing screenshot and HTML...")
         await page.screenshot(path="screenshot.png", full_page=True)
+        html = await page.content()
+        with open("call_log_page.html", "w", encoding="utf-8") as f:
+            f.write(html)
+
         
         html = await page.content()
         with open("call_log_page.html", "w", encoding="utf-8") as f:
