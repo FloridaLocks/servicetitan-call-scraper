@@ -42,13 +42,13 @@ async def run_scraper():
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
         await page.wait_for_timeout(6000)
 
-     from datetime import datetime
+        from datetime import datetime
 
         # Step 1: Click the visible date input to open the calendar panel
         print("📅 Clicking main date input to open calendar...")
         await page.click('input[data-cy="qa-daterange-input"]')
         await page.wait_for_timeout(1500)
-        
+
         # Debug: Screenshot before trying to locate calendar
         print("📸 Taking screenshot before checking for calendar...")
         before_calendar = await page.screenshot()
@@ -56,15 +56,15 @@ async def run_scraper():
         print("\n--- BEGIN CALENDAR DEBUG SCREENSHOT ---\n")
         print(before_calendar_b64)
         print("\n--- END CALENDAR DEBUG SCREENSHOT ---\n")
-        
+
         # Step 2: Wait for the calendar panel to appear
         print("⌛ Waiting for calendar popup to become visible...")
         await page.wait_for_selector('div[data-cy="qa-daterange-calendar"]', timeout=10000)
-        
+
         # Step 3: Enter today’s date in both start and end
         today_str = datetime.today().strftime("%m/%d/%Y")
         print(f"🗓 Typing today ({today_str}) into Start & End date fields...")
-        
+
         await page.fill('input[placeholder="Start date"]', today_str)
         await page.keyboard.press("Tab")
         await page.fill('input[placeholder="End date"]', today_str)
