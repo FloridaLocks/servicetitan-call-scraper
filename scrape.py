@@ -42,61 +42,61 @@ async def run_scraper():
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
         await page.wait_for_timeout(6000)
 
-        # Step 1: Click the visible date input to open the calendar panel
-        print("📅 Clicking main date input to open calendar...")
-        await page.locator('input[data-cy="qa-daterange-input"]').scroll_into_view_if_needed()
-        await page.click('input[data-cy="qa-daterange-input"]')
+        # Click to open calendar menu
+        print("📅 Clicking date input to open calendar...")
+        try:
+            await page.locator('input[data-cy="qa-daterange-input"]').scroll_into_view_if_needed()
+            await page.click('input[data-cy="qa-daterange-input"]')
+            await page.wait_for_timeout(1000)
+        except Exception as e:
+            print(f"❌ Failed to click calendar input: {e}")
 
-        # Screenshot right after click to verify state
-        print("📸 Taking screenshot right after clicking date input...")
-        calendar_try = await page.screenshot()
-        calendar_try_b64 = base64.b64encode(calendar_try).decode()
+        # Screenshot immediately after clicking
+        print("📸 Screenshot after clicking input...")
+        screenshot_bytes = await page.screenshot()
         print("\n--- AFTER CLICK SCREENSHOT ---\n")
-        print(calendar_try_b64)
-        print("\n--- END ---\n")
+        print(base64.b64encode(screenshot_bytes).decode())
+        print("\n--- END SCREENSHOT ---\n")
 
-        print("⌛ Waiting for date input fields...")
-        await page.wait_for_selector('div.InputDateMask input[placeholder="__/__/____"]', timeout=10000)
+        # Wait for the date input fields to be ready
+        print("⌛ Looking for masked date fields (placeholder='__/__/____')...")
+        try:
+            await page.wait_for_selector('input[placeholder="__/__/____"]', timeout=10000)
+            date_inputs = await page.query_selector_all('input[placeholder="__/__/____"]')
+        except Exception as e:
+            print(f"❌ Could not find placeholder inputs: {e}")
+            date_inputs = []
 
-        date_inputs = await page.query_selector_all('div.InputDateMask input[placeholder="__/__/____"]')
-        if len(date_inputs) >= 2:
-            today = datetime.today().strftime("%m/%d/%Y")
-            print(f"⌨️ Typing {today} into date range fields...")
+        if len(date_inputs) < 2:
+            raise Exception("❌ Could not find both Start and End date inputs")
 
-            await date_inputs[0].click()
-            await date_inputs[0].fill(today)
-            await page.keyboard.press("Tab")
-            await date_inputs[1].click()
-            await date_inputs[1].fill(today)
-            await page.keyboard.press("Enter")
+        today_str = datetime.today().strftime("%m/%d/%Y")
+        print(f"⌨️ Typing today’s date: {today_str} into both fields...")
+        await date_inputs[0].fill(today_str)
+        await date_inputs[1].fill(today_str)
+        await page.keyboard.press("Enter")
+        print("✅ Date entry completed.")
 
-            print("✅ Dates entered and calendar submitted")
-        else:
-            raise Exception("❌ Could not find both start and end date fields.")
-
-        # STEP 3: Click Run Report
+        # Click Run Report
         print("▶️ Clicking Run Report...")
-        await page.click("button.qa-run-button")
+        try:
+            await page.click("button.qa-run-button")
+        except Exception as e:
+            print(f"❌ Failed to click run report: {e}")
 
-        # STEP 4: Wait for report to process
-        print("⏳ Waiting 15 seconds for report to load...")
+        # Wait for report to load
+        print("⏳ Waiting 15 seconds for report to process...")
         await page.wait_for_timeout(15000)
 
-        # STEP 5: Save full-page screenshot and HTML
-        print("📸 Capturing screenshot and HTML...")
-        await page.screenshot(path="screenshot.png", full_page=True)
+        # Capture full HTML and screenshot
+        print("📸 Final page capture...")
         html = await page.content()
-        print("\n--- BEGIN HTML PAGE ---\n")
-        print(html[:5000])
-        print("\n--- END HTML PAGE ---\n")
+        print("\n--- HTML START ---\n")
+        print(html[:3000])
+        print("\n--- HTML END ---\n")
 
-        with open("call_log_page.html", "w", encoding="utf-8") as f:
-            f.write(html)
-        print("✅ Report HTML saved")
-
-        # STEP 6: Print screenshot base64 for deploy log
-        screenshot_bytes = await page.screenshot()
-        screenshot_b64 = base64.b64encode(screenshot_bytes).decode()
-        print("\n--- BEGIN BASE64 SCREENSHOT ---\n")
-        print(screenshot_b64)
-        print("\n--- END BASE64 SCREENSHOT ---\n")
+        # Return base64 screenshot
+        final_screenshot = await page.screenshot()
+        print("\n--- FINAL SCREENSHOT BASE64 ---\n")
+        print(base64.b64encode(final_screenshot).decode())
+        print("\n--- END ---\n")
