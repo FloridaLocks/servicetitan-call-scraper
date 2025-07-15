@@ -59,14 +59,20 @@ async def run_scraper():
         await page.click("button.qa-run-button")
         await page.wait_for_timeout(15000)
 
-        print("📸 Capturing report screenshot and HTML...")
-        screenshot = await page.screenshot(path="screenshot.png", full_page=True)
+                # Final screenshot after Run Report
+        print("⏳ Waiting a bit more before capturing screenshot...")
+        await page.wait_for_timeout(2000)
+
+        screenshot_bytes = await page.screenshot(path="screenshot.png", full_page=True)
         html = await page.content()
+
         with open("call_log_page.html", "w", encoding="utf-8") as f:
             f.write(html)
-        print("✅ Report saved")
+        print("✅ Report HTML saved")
 
-        screenshot_b64 = base64.b64encode(screenshot).decode()
+        screenshot_b64 = base64.b64encode(screenshot_bytes).decode("utf-8")
+        print(f"✅ Screenshot captured ({len(screenshot_b64)} characters)")
+
         print("\n--- BEGIN BASE64 SCREENSHOT ---\n")
-        print(screenshot_b64)
-        print("\n--- END BASE64 SCREENSHOT ---\n")
+        print(screenshot_b64[:500])  # Only show first 500 chars to reduce clutter
+        print("...\n--- END BASE64 SCREENSHOT ---\n")
