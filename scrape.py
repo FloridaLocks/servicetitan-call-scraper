@@ -2,12 +2,9 @@ import asyncio
 from playwright.async_api import async_playwright
 import base64
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# ✅ Log whether environment variable is present
-print("DEBUG: ENV VAR FOUND?", os.getenv("PLAYWRIGHT_AUTH_B64") is not None)
-
-# ✅ Write auth file from base64 env var if present
+# ✅ Write auth file from environment
 def write_auth_file():
     b64_data = os.getenv("PLAYWRIGHT_AUTH_B64")
     if b64_data:
@@ -16,15 +13,15 @@ def write_auth_file():
             f.write(base64.b64decode(b64_data))
         print("✅ playwright_auth.json restored from env")
     else:
-        print("⚠️  PLAYWRIGHT_AUTH_B64 not set — skipping session file write")
+        print("⚠️ PLAYWRIGHT_AUTH_B64 not set — skipping session file write")
 
-# ✅ Ensure the .auth file exists before browser launch
+# ✅ Ensure auth file exists
 def ensure_auth_file():
     if not os.path.exists(".auth/playwright_auth.json"):
-        raise FileNotFoundError("❌ Auth file missing at .auth/playwright_auth.json")
+        raise FileNotFoundError("❌ Auth file missing")
     print("✅ playwright_auth.json found — ready to launch browser")
 
-# 🚀 MAIN SCRAPER LOGIC
+# 🧠 Scraper logic
 async def run_scraper():
     ensure_auth_file()
     print("🚀 Starting scraper...")
@@ -38,99 +35,43 @@ async def run_scraper():
         await page.goto("https://go.servicetitan.com", timeout=60000)
         await page.wait_for_timeout(5000)
 
-        print("📊 Navigating to report page...")
+        print("📊 Navigating to report...")
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
         await page.wait_for_timeout(6000)
 
-        print("📅 Clicking main date input to open calendar...")
-        await page.locator('input[data-cy="qa-daterange-input"]').scroll_into_view_if_needed()
+        # Step 1: Click date range input
+        print("📅 Clicking date range input...")
         await page.click('input[data-cy="qa-daterange-input"]')
+        await page.wait_for_timeout(1000)
 
-        print("📸 Taking screenshot right after clicking date input...")
-        calendar_try = await page.screenshot()
-        calendar_try_b64 = base64.b64encode(calendar_try).decode()
-        print("\n--- AFTER CLICK SCREENSHOT ---\n")
-        print(calendar_try_b64)
-        print("\n--- END ---\n")
+        # Step 2: Type date range (Last 7 Days)
+        today = datetime.today()
+        start = (today - timedelta(days=6)).strftime("%m/%d/%Y")
+        end = today.strftime("%m/%d/%Y")
+        print(f"🗓 Entering dates: {start} to {end}")
 
-        print("⌛ Checking for calendar popup...")
-        calendar_found = False
-        for selector in [
-            'div[data-cy="qa-daterange-calendar"]',
-            'div.react-datepicker__calendar',
-            'div.react-datepicker',
-            'div.MuiPopover-root',
-            'div[role="dialog"]'
-        ]:
-            try:
-                await page.wait_for_selector(selector, timeout=5000)
-                print(f"✅ Found calendar using selector: {selector}")
-                calendar_found = True
-                break
-            except:
-                print(f"❌ Selector not found: {selector}")
+        await page.fill('input[placeholder="Start date"]', start)
+        await page.keyboard.press("Tab")
+        await page.fill('input[placeholder="End date"]', end)
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(1000)
 
-        if not calendar_found:
-            print("❌ Calendar popup still not detected after retries.")
-            calendar_html = await page.content()
-            print("\n--- CALENDAR HTML DEBUG (trimmed) ---\n")
-            print(calendar_html[:3000])
-            print("\n--- END CALENDAR HTML ---\n")
-            raise Exception("❌ Calendar popup still not detected after all selector attempts.")
-
-        # 🗓 Inject today's date using JavaScript
-        today = datetime.today().strftime("%m/%d/%Y")
-        print(f"⌨️ Setting Start and End date to: {today}")
-
-        await page.evaluate("""
-            (dateStr) => {
-                const inputs = document.querySelectorAll('div.react-datepicker__tab-loop input');
-                if (inputs.length >= 2) {
-                    inputs[0].value = dateStr;
-                    inputs[1].value = dateStr;
-                } else {
-                    throw new Error('❌ Could not find both Start and End date inputs');
-                }
-            }
-        """, today)
-
-        # Press Enter on second field to apply the date
-        inputs = await page.query_selector_all('div.react-datepicker__tab-loop input')
-        if len(inputs) >= 2:
-            await inputs[1].press("Enter")
-            print("✅ Enter pressed on End Date input")
-            try:
-                await page.wait_for_selector('div.react-datepicker__tab-loop', state='detached', timeout=5000)
-                print("✅ Calendar dismissed successfully")
-            except:
-                print("⚠️ Calendar may still be open, clicking outside to force close")
-                await page.click("header")
-                await page.wait_for_timeout(1000)
-        else:
-            raise Exception("❌ Could not find both Start and End date inputs after JavaScript fill")
-
-        # 🔺 Click Run Report
+        # Step 3: Click Run Report
         print("▶️ Clicking Run Report...")
         await page.click("button.qa-run-button")
 
-        # ⏳ Wait for report to process
-        print("⌛ Waiting 15 seconds for report to load...")
+        # Step 4: Wait for report spinner to process
+        print("⏳ Waiting 15s for report to generate...")
         await page.wait_for_timeout(15000)
 
-        # 📸 Capture screenshot and HTML
+        # Step 5: Screenshot and HTML
         print("📸 Capturing screenshot and HTML...")
-        await page.screenshot(path="screenshot.png", full_page=True)
         html = await page.content()
-        print("\n--- BEGIN HTML PAGE ---\n")
-        print(html[:5000])
-        print("\n--- END HTML PAGE ---\n")
-
         with open("call_log_page.html", "w", encoding="utf-8") as f:
             f.write(html)
-        print("✅ Report HTML saved")
 
-        screenshot_bytes = await page.screenshot()
-        screenshot_b64 = base64.b64encode(screenshot_bytes).decode()
+        screenshot = await page.screenshot(full_page=True)
+        screenshot_b64 = base64.b64encode(screenshot).decode()
         print("\n--- BEGIN BASE64 SCREENSHOT ---\n")
         print(screenshot_b64)
         print("\n--- END BASE64 SCREENSHOT ---\n")
