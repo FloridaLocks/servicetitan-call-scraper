@@ -4,8 +4,8 @@ import base64
 import os
 from datetime import datetime
 
-# ✅ Log whether environment variable is present
-print("DEBUG: ENV VAR FOUND?", os.getenv("PLAYWRIGHT_AUTH_B64") is not None)
+# Ensure static directory exists
+os.makedirs("static", exist_ok=True)
 
 # ✅ Write auth file from base64 env var if present
 def write_auth_file():
@@ -42,58 +42,34 @@ async def run_scraper():
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
         await page.wait_for_timeout(6000)
 
-        # Step 1: Click the visible date input to open the calendar panel
-        print("📅 Clicking main date input to open calendar...")
+        print("📅 Clicking date input...")
         await page.locator('input[data-cy="qa-daterange-input"]').scroll_into_view_if_needed()
         await page.click('input[data-cy="qa-daterange-input"]')
+        await page.wait_for_timeout(1000)
 
-        print("⌛ Waiting for calendar popup to appear...")
-        await page.wait_for_timeout(2000)
-
-        # Find date inputs based on their placeholder
-        print("⌨️ Typing today's date into calendar fields...")
         today = datetime.today().strftime("%m/%d/%Y")
-        inputs = await page.locator('input[placeholder="__/__/____"]').all()
+        print(f"⌨️ Typing today’s date: {today}")
 
-        if len(inputs) < 2:
-            raise Exception("❌ Did not find 2 input fields for date range")
+        inputs = await page.query_selector_all('input[placeholder="__/__/____"]')
+        if len(inputs) >= 2:
+            await inputs[0].fill(today)
+            await inputs[1].fill(today)
+            await page.keyboard.press("Enter")
+            print("✅ Dates entered")
+        else:
+            raise Exception("❌ Date input fields not found")
 
-        await inputs[0].fill(today)
-        await inputs[1].fill(today)
-        await page.keyboard.press("Enter")
-        print("✅ Date fields filled")
-
-        # Step 2: Click Run Report
         print("▶️ Clicking Run Report...")
         await page.click("button.qa-run-button")
 
-        # Step 3: Wait for report to process
-        print("⏳ Waiting 15 seconds for report to load...")
+        print("⏳ Waiting 15s for report to load...")
         await page.wait_for_timeout(15000)
 
-        # Step 4: Save and print screenshot + HTML summary
-        print("📸 Capturing screenshot...")
-        try:
-            screenshot_bytes = await page.screenshot(full_page=True)
-            screenshot_b64 = base64.b64encode(screenshot_bytes).decode()
-            print("\n--- BEGIN BASE64 SCREENSHOT ---")
-            print(screenshot_b64[:1000] + "..." if len(screenshot_b64) > 1000 else screenshot_b64)
-            print("--- END BASE64 SCREENSHOT ---\n")
-        except Exception as e:
-            print(f"❌ Error capturing screenshot: {e}")
+        print("📸 Capturing screenshot and HTML...")
+        screenshot_bytes = await page.screenshot(path="static/latest_screenshot.png", full_page=True)
+        html = await page.content()
 
-        print("📄 Capturing HTML...")
-        try:
-            html = await page.content()
-            print("\n--- BEGIN HTML PREVIEW ---")
-            print(html[:3000] + "..." if len(html) > 3000 else html)
-            print("--- END HTML PREVIEW ---\n")
-        except Exception as e:
-            print(f"❌ Error capturing HTML: {e}")
-    # Save screenshot to file
-    with open("latest_screenshot.png", "wb") as f:
-        f.write(screenshot_bytes)
-    
-    # Save HTML to file
-    with open("latest_report.html", "w", encoding="utf-8") as f:
-        f.write(html)
+        with open("static/latest_report.html", "w", encoding="utf-8") as f:
+            f.write(html)
+
+        print("✅ Files saved to static folder")
