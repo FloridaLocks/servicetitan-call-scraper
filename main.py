@@ -34,3 +34,12 @@ def run():
 # --- Step 3: Start Flask app (used by Railway to serve traffic) ---
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+from flask import Flask, send_file
+
+@app.route("/screenshot")
+def serve_screenshot():
+    return send_file("latest_screenshot.png", mimetype="image/png")
+
+@app.route("/html")
+def serve_html():
+    return send_file("latest_report.html", mimetype="text/html")
