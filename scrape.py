@@ -4,24 +4,21 @@ import base64
 import os
 from datetime import datetime, timedelta
 
-# ✅ Write auth file from environment
+# Write auth file from env
 def write_auth_file():
-    b64_data = os.getenv("PLAYWRIGHT_AUTH_B64")
-    if b64_data:
+    b64 = os.getenv("PLAYWRIGHT_AUTH_B64")
+    if b64:
         os.makedirs(".auth", exist_ok=True)
         with open(".auth/playwright_auth.json", "wb") as f:
-            f.write(base64.b64decode(b64_data))
-        print("✅ playwright_auth.json restored from env")
+            f.write(base64.b64decode(b64))
+        print("✅ Auth restored")
     else:
-        print("⚠️ PLAYWRIGHT_AUTH_B64 not set — skipping session file write")
+        print("⚠️  No auth file found in env")
 
-# ✅ Ensure auth file exists
 def ensure_auth_file():
     if not os.path.exists(".auth/playwright_auth.json"):
-        raise FileNotFoundError("❌ Auth file missing")
-    print("✅ playwright_auth.json found — ready to launch browser")
+        raise FileNotFoundError("❌ Missing playwright_auth.json")
 
-# 🧠 Scraper logic
 async def run_scraper():
     ensure_auth_file()
     print("🚀 Starting scraper...")
@@ -31,47 +28,55 @@ async def run_scraper():
         context = await browser.new_context(storage_state=".auth/playwright_auth.json")
         page = await context.new_page()
 
-        print("🔐 Navigating to go.servicetitan.com")
+        print("🔐 Navigating to ServiceTitan")
         await page.goto("https://go.servicetitan.com", timeout=60000)
         await page.wait_for_timeout(5000)
 
-        print("📊 Navigating to report...")
+        print("📊 Navigating to report page")
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
-        await page.wait_for_timeout(6000)
+        await page.wait_for_timeout(5000)
 
-        # Step 1: Click date range input
-        print("📅 Clicking date range input...")
+        print("📅 Opening calendar popup...")
         await page.click('input[data-cy="qa-daterange-input"]')
-        await page.wait_for_timeout(1000)
+        await page.wait_for_timeout(1500)
 
-        # Step 2: Type date range (Last 7 Days)
+        # Screenshot to debug state
+        screenshot = await page.screenshot()
+        print("\n--- CALENDAR POPUP SCREENSHOT ---\n")
+        print(base64.b64encode(screenshot).decode())
+        print("\n--- END SCREENSHOT ---\n")
+
+        # Find calendar fields using flexible query
+        inputs = await page.query_selector_all('div.react-datepicker__tab-loop input')
+        if len(inputs) < 2:
+            raise Exception("❌ Could not find both calendar input fields")
+
+        # Dates
         today = datetime.today()
         start = (today - timedelta(days=6)).strftime("%m/%d/%Y")
         end = today.strftime("%m/%d/%Y")
-        print(f"🗓 Entering dates: {start} to {end}")
+        print(f"⌨️ Typing date range: {start} - {end}")
 
-        await page.fill('input[placeholder="Start date"]', start)
+        await inputs[0].fill(start)
         await page.keyboard.press("Tab")
-        await page.fill('input[placeholder="End date"]', end)
+        await inputs[1].fill(end)
         await page.keyboard.press("Enter")
         await page.wait_for_timeout(1000)
 
-        # Step 3: Click Run Report
         print("▶️ Clicking Run Report...")
         await page.click("button.qa-run-button")
 
-        # Step 4: Wait for report spinner to process
-        print("⏳ Waiting 15s for report to generate...")
+        print("⏳ Waiting 15s for report spinner...")
         await page.wait_for_timeout(15000)
 
-        # Step 5: Screenshot and HTML
-        print("📸 Capturing screenshot and HTML...")
+        # Screenshot full page
+        full_shot = await page.screenshot(full_page=True)
+        print("\n--- FULL PAGE SCREENSHOT ---\n")
+        print(base64.b64encode(full_shot).decode())
+        print("\n--- END SCREENSHOT ---\n")
+
+        # Save HTML
         html = await page.content()
         with open("call_log_page.html", "w", encoding="utf-8") as f:
             f.write(html)
-
-        screenshot = await page.screenshot(full_page=True)
-        screenshot_b64 = base64.b64encode(screenshot).decode()
-        print("\n--- BEGIN BASE64 SCREENSHOT ---\n")
-        print(screenshot_b64)
-        print("\n--- END BASE64 SCREENSHOT ---\n")
+        print("✅ call_log_page.html saved")
