@@ -49,4 +49,34 @@ async def run_scraper():
         today = datetime.today().strftime("%m/%d/%Y")
         print(f"⌨️ Typing today's date: {today}")
         try:
-            await page.fill('inp
+            await page.fill('input[placeholder="Start date"]', today)
+            await page.keyboard.press("Tab")
+            await page.fill('input[placeholder="End date"]', today)
+            await page.keyboard.press("Enter")
+            print("✅ Dates entered")
+        except Exception as e:
+            print(f"❌ Failed to type dates: {e}")
+            raise
+
+        # Step 3: Click "Run Report"
+        print("▶️ Clicking Run Report...")
+        await page.click("button.qa-run-button")
+
+        # Step 4: Wait for table or spinner
+        print("⏳ Waiting 15s for report to generate...")
+        await page.wait_for_timeout(15000)
+
+        # Step 5: Screenshot
+        print("📸 Capturing screenshot...")
+        screenshot = await page.screenshot(full_page=True)
+        b64 = base64.b64encode(screenshot).decode()
+        print("\n--- BEGIN SCREENSHOT ---\n")
+        print(b64)
+        print("\n--- END SCREENSHOT ---\n")
+
+        # Step 6: Save HTML snapshot
+        html = await page.content()
+        with open("call_log_page.html", "w", encoding="utf-8") as f:
+            f.write(html)
+        print("✅ Saved HTML")
+
