@@ -4,9 +4,10 @@ import base64
 import os
 from datetime import datetime
 
-# ✅ Restore auth file from environment
+# ✅ Log whether environment variable is present
 print("DEBUG: ENV VAR FOUND?", os.getenv("PLAYWRIGHT_AUTH_B64") is not None)
 
+# ✅ Write auth file from base64 env var if present
 def write_auth_file():
     b64_data = os.getenv("PLAYWRIGHT_AUTH_B64")
     if b64_data:
@@ -17,12 +18,13 @@ def write_auth_file():
     else:
         print("⚠️  PLAYWRIGHT_AUTH_B64 not set — skipping session file write")
 
+# ✅ Ensure the .auth file exists before browser launch
 def ensure_auth_file():
     if not os.path.exists(".auth/playwright_auth.json"):
         raise FileNotFoundError("❌ Auth file missing at .auth/playwright_auth.json")
     print("✅ playwright_auth.json found — ready to launch browser")
 
-# 🚀 Main scraping logic
+# 🚀 MAIN SCRAPER LOGIC
 async def run_scraper():
     ensure_auth_file()
     print("🚀 Starting scraper...")
@@ -34,79 +36,57 @@ async def run_scraper():
 
         print("🔐 Navigating to go.servicetitan.com")
         await page.goto("https://go.servicetitan.com", timeout=60000)
-        await page.wait_for_timeout(3000)
+        await page.wait_for_timeout(5000)
 
         print("📊 Navigating to report page...")
         await page.goto("https://go.servicetitan.com/#/new/reports/195360261", timeout=60000)
-        await page.wait_for_timeout(5000)
+        await page.wait_for_timeout(6000)
 
-        # 🗓️ Click and wait for calendar popup
-        print("📅 Clicking date input to open calendar")
+        # Step 1: Click the visible date input to open the calendar panel
+        print("📅 Clicking main date input to open calendar...")
+        await page.locator('input[data-cy="qa-daterange-input"]').scroll_into_view_if_needed()
         await page.click('input[data-cy="qa-daterange-input"]')
-        await page.wait_for_timeout(1000)
 
-        print("⌛ Checking for calendar popup...")
-        calendar_found = False
-        for selector in [
-            'input[placeholder="__/__/____"]',
-            'input.InputDateMask',
-        ]:
-            try:
-                await page.wait_for_selector(selector, timeout=5000)
-                print(f"✅ Found calendar field with: {selector}")
-                calendar_found = True
-                break
-            except:
-                print(f"❌ Selector not found: {selector}")
+        print("⌛ Waiting for calendar popup to appear...")
+        await page.wait_for_timeout(2000)
 
-        if not calendar_found:
-            print("❌ Still no calendar found. Aborting.")
-            return
-
-        # 🧠 Fill in today's date into both fields
+        # Find date inputs based on their placeholder
+        print("⌨️ Typing today's date into calendar fields...")
         today = datetime.today().strftime("%m/%d/%Y")
-        print(f"⌨️ Typing today's date: {today}")
+        inputs = await page.locator('input[placeholder="__/__/____"]').all()
 
-        inputs = await page.query_selector_all('input[placeholder="__/__/____"]')
-        if len(inputs) >= 2:
-            await inputs[0].fill(today)
-            await inputs[1].fill(today)
-            await page.keyboard.press("Enter")
-            print("✅ Dates entered")
-        else:
-            print("❌ Couldn't find two input fields for start/end date")
-            return
+        if len(inputs) < 2:
+            raise Exception("❌ Did not find 2 input fields for date range")
 
-        # ▶️ Click Run Report
+        await inputs[0].fill(today)
+        await inputs[1].fill(today)
+        await page.keyboard.press("Enter")
+        print("✅ Date fields filled")
+
+        # Step 2: Click Run Report
         print("▶️ Clicking Run Report...")
-        try:
-            await page.click("button.qa-run-button")
-        except Exception as e:
-            print(f"❌ Failed to click Run Report: {e}")
-            return
+        await page.click("button.qa-run-button")
 
+        # Step 3: Wait for report to process
         print("⏳ Waiting 15 seconds for report to load...")
         await page.wait_for_timeout(15000)
 
-        # 📸 Screenshot & HTML output
-        print("📸 Capturing final screenshot and HTML...")
-        screenshot_bytes = await page.screenshot(path="screenshot.png", full_page=True)
-        screenshot_b64 = base64.b64encode(screenshot_bytes).decode("utf-8")
+        # Step 4: Save and print screenshot + HTML summary
+        print("📸 Capturing screenshot...")
+        try:
+            screenshot_bytes = await page.screenshot(full_page=True)
+            screenshot_b64 = base64.b64encode(screenshot_bytes).decode()
+            print("\n--- BEGIN BASE64 SCREENSHOT ---")
+            print(screenshot_b64[:1000] + "..." if len(screenshot_b64) > 1000 else screenshot_b64)
+            print("--- END BASE64 SCREENSHOT ---\n")
+        except Exception as e:
+            print(f"❌ Error capturing screenshot: {e}")
 
-        print("\n--- BEGIN BASE64 SCREENSHOT (first 500 chars) ---")
-        print(screenshot_b64[:500])
-        print("... (truncated)\n--- END BASE64 SCREENSHOT ---\n")
-
-        html = await page.content()
-        print("✅ Report HTML captured")
-
-        print("\n--- BEGIN HTML SNIPPET (first 3000 chars) ---")
-        print(html[:3000])
-        print("\n--- END HTML SNIPPET ---\n")
-
-        print("✅ Scraper completed successfully")
-
-# Run for local debug
-if __name__ == "__main__":
-    write_auth_file()
-    asyncio.run(run_scraper())
+        print("📄 Capturing HTML...")
+        try:
+            html = await page.content()
+            print("\n--- BEGIN HTML PREVIEW ---")
+            print(html[:3000] + "..." if len(html) > 3000 else html)
+            print("--- END HTML PREVIEW ---\n")
+        except Exception as e:
+            print(f"❌ Error capturing HTML: {e}")
