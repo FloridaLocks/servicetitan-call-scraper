@@ -90,3 +90,10 @@ async def run_scraper():
             print("--- END HTML PREVIEW ---\n")
         except Exception as e:
             print(f"❌ Error capturing HTML: {e}")
+    # Save screenshot to file
+    with open("latest_screenshot.png", "wb") as f:
+        f.write(screenshot_bytes)
+    
+    # Save HTML to file
+    with open("latest_report.html", "w", encoding="utf-8") as f:
+        f.write(html)
